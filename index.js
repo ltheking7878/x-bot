@@ -1,3 +1,28 @@
+const express = require("express");
+const axios = require("axios");
+const crypto = require("crypto");
+require("dotenv").config();
+
+const app = express();
+
+let codeVerifier = "";
+
+function base64URLEncode(str) {
+  return Buffer.from(str)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function sha256(buffer) {
+  return crypto.createHash("sha256").update(buffer).digest();
+}
+
+app.get("/", (req, res) => {
+  res.send("X Bot Running. Go to /login");
+});
+
 app.get("/login", (req, res) => {
   codeVerifier = base64URLEncode(crypto.randomBytes(32));
   const codeChallenge = base64URLEncode(sha256(codeVerifier));
@@ -15,10 +40,6 @@ app.get("/login", (req, res) => {
   res.redirect(authUrl);
 });
 
-  res.redirect(authUrl);
-});
-
-// callback
 app.get("/callback", async (req, res) => {
   const code = req.query.code;
 
@@ -45,7 +66,7 @@ app.get("/callback", async (req, res) => {
       "https://api.x.com/1.1/account/update_profile.json",
       new URLSearchParams({
         description:
-          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫😵‍💫🌀🌀 I’ve given myself up to her completely ‼️‼️ click and join too 💗✨😵‍💫",
+          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫😵‍💫🌀🌀 I’ve given myself up completely ‼️ click and join 💗✨😵‍💫",
         url: "https://throne.com/melanierosalee"
       }),
       {
@@ -63,7 +84,6 @@ app.get("/callback", async (req, res) => {
   }
 });
 
-// start
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running");
 });
