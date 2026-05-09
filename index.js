@@ -30,23 +30,23 @@ app.get("/", (req, res) => {
 });
 
 // =====================
-// LOGIN
+// LOGIN (PKCE)
 // =====================
 app.get("/login", (req, res) => {
   codeVerifier = base64URLEncode(crypto.randomBytes(32));
   const codeChallenge = base64URLEncode(sha256(codeVerifier));
 
   const authUrl =
-   "https://twitter.com/i/oauth2/authorize" +
-   "?response_type=code" +
-   `&client_id=${process.env.CLIENT_ID}` +
-   `&redirect_uri=${encodeURIComponent(process.env.CALLBACK_URL)}` +
-   "&scope=users.read%20tweet.read%20tweet.write%20offline.access" +
-   "&state=12345" +
-   `&code_challenge=${codeChallenge}` +
-   "&code_challenge_method=S256";
+    "https://twitter.com/i/oauth2/authorize" +
+    "?response_type=code" +
+    `&client_id=${process.env.CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(process.env.CALLBACK_URL)}` +
+    "&scope=users.read%20tweet.read%20tweet.write%20offline.access" +
+    "&state=12345" +
+    `&code_challenge=${codeChallenge}` +
+    "&code_challenge_method=S256`;
 
-res.redirect(authUrl);
+  res.redirect(authUrl);
 });
 
 // =====================
@@ -60,31 +60,40 @@ app.get("/callback", async (req, res) => {
   }
 
   try {
+    // =====================
     // TOKEN EXCHANGE (FIXED)
+    // =====================
     const tokenRes = await axios.post(
       "https://api.x.com/2/oauth2/token",
       new URLSearchParams({
         grant_type: "authorization_code",
         client_id: process.env.CLIENT_ID,
-        code: code,
+        code,
         redirect_uri: process.env.CALLBACK_URL,
         code_verifier: codeVerifier
       }),
       {
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization":
+            "Basic " +
+            Buffer.from(
+              process.env.CLIENT_ID + ":" + process.env.CLIENT_SECRET
+            ).toString("base64")
         }
       }
     );
 
     const accessToken = tokenRes.data.access_token;
 
+    // =====================
     // UPDATE PROFILE
+    // =====================
     await axios.post(
       "https://api.x.com/1.1/account/update_profile.json",
       new URLSearchParams({
         description:
-          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫😵‍💫🌀🌀 I’ve given myself up completely ‼️ click and join 💗✨😵‍💫",
+          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫🌀 I’ve given myself up completely ‼️ click and join 💗✨😵‍💫",
         url: "https://throne.com/melanierosalee"
       }),
       {
@@ -97,8 +106,8 @@ app.get("/callback", async (req, res) => {
 
     res.send("Profile updated successfully ✅");
   } catch (err) {
-    console.log(err.response?.data || err.message);
-    res.status(500).send("Error updating profile ❌");
+    console.log("ERROR:", err.response?.data || err.message);
+    res.status(500).send("OAuth failed ❌ Check logs");
   }
 });
 
