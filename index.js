@@ -1,31 +1,3 @@
-const express = require("express");
-const axios = require("axios");
-const crypto = require("crypto");
-require("dotenv").config();
-
-const app = express();
-
-let codeVerifier = "";
-
-// helpers
-function base64URLEncode(str) {
-  return Buffer.from(str)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function sha256(buffer) {
-  return crypto.createHash("sha256").update(buffer).digest();
-}
-
-// home
-app.get("/", (req, res) => {
-  res.send("X Bot Running. Go to /login");
-});
-
-// login
 app.get("/login", (req, res) => {
   codeVerifier = base64URLEncode(crypto.randomBytes(32));
   const codeChallenge = base64URLEncode(sha256(codeVerifier));
@@ -38,7 +10,10 @@ app.get("/login", (req, res) => {
     "&scope=users.read%20tweet.read%20tweet.write%20offline.access" +
     "&state=12345" +
     `&code_challenge=${codeChallenge}` +
-    "&code_challenge_method=S256`;
+    "&code_challenge_method=S256";
+
+  res.redirect(authUrl);
+});
 
   res.redirect(authUrl);
 });
