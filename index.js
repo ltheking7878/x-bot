@@ -37,16 +37,16 @@ app.get("/login", (req, res) => {
   const codeChallenge = base64URLEncode(sha256(codeVerifier));
 
   const authUrl =
-    "https://twitter.com/i/oauth2/authorize" +
-    "?response_type=code" +
-    `&client_id=${process.env.CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(process.env.CALLBACK_URL)}` +
-    "&scope=users.read tweet.read tweet.write offline.access" +
-    "&state=12345" +
-    `&code_challenge=${codeChallenge}` +
-    "&code_challenge_method=S256";
+   "https://twitter.com/i/oauth2/authorize" +
+   "?response_type=code" +
+   `&client_id=${process.env.CLIENT_ID}` +
+   `&redirect_uri=${encodeURIComponent(process.env.CALLBACK_URL)}` +
+   "&scope=users.read%20tweet.read%20tweet.write%20offline.access" +
+   "&state=12345" +
+   `&code_challenge=${codeChallenge}` +
+   "&code_challenge_method=S256";
 
-  res.redirect(authUrl);
+res.redirect(authUrl);
 });
 
 // =====================
