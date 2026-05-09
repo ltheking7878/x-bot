@@ -1,6 +1,8 @@
 const express = require("express");
 const axios = require("axios");
 const crypto = require("crypto");
+const OAuth = require("oauth-1.0a");
+const CryptoJS = require("crypto-js");
 require("dotenv").config();
 
 const app = express();
@@ -8,7 +10,7 @@ const app = express();
 let codeVerifier = "";
 
 // =====================
-// PKCE HELPERS
+// PKCE HELPERS (OAuth2 login)
 // =====================
 function base64URLEncode(str) {
   return Buffer.from(str)
@@ -23,14 +25,39 @@ function sha256(buffer) {
 }
 
 // =====================
+// OAUTH1 SETUP (profile update)
+// =====================
+const oauth = OAuth({
+  consumer: {
+    key: process.env.API_KEY,
+    secret: process.env.API_SECRET
+  },
+  signature_method: "HMAC-SHA1",
+  hash_function(base_string, key) {
+    return CryptoJS.HmacSHA1(base_string, key).toString(CryptoJS.enc.Base64);
+  }
+});
+
+const token = {
+  key: process.env.ACCESS_TOKEN,
+  secret: process.env.ACCESS_TOKEN_SECRET
+};
+
+// =====================
 // HOME
 // =====================
 app.get("/", (req, res) => {
-  res.send("X Bot Running. Go to /login");
+  res.send(`
+    X Bot Running 🚀
+    <br><br>
+    1. /login → authenticate  
+    <br>
+    2. /update-profile → change profile (OAuth1)
+  `);
 });
 
 // =====================
-// LOGIN (PKCE)
+// OAUTH2 LOGIN
 // =====================
 app.get("/login", (req, res) => {
   codeVerifier = base64URLEncode(crypto.randomBytes(32));
@@ -44,13 +71,13 @@ app.get("/login", (req, res) => {
     "&scope=users.read%20tweet.read%20tweet.write%20offline.access" +
     "&state=12345" +
     `&code_challenge=${codeChallenge}` +
-    "&code_challenge_method=S256`;
+    "&code_challenge_method=S256";
 
   res.redirect(authUrl);
 });
 
 // =====================
-// CALLBACK
+// OAUTH2 CALLBACK (ONLY LOGIN CONFIRMATION)
 // =====================
 app.get("/callback", async (req, res) => {
   const code = req.query.code;
@@ -60,9 +87,6 @@ app.get("/callback", async (req, res) => {
   }
 
   try {
-    // =====================
-    // TOKEN EXCHANGE (FIXED)
-    // =====================
     const tokenRes = await axios.post(
       "https://api.x.com/2/oauth2/token",
       new URLSearchParams({
@@ -84,21 +108,38 @@ app.get("/callback", async (req, res) => {
       }
     );
 
-    const accessToken = tokenRes.data.access_token;
+    res.send("Login successful ✅ Now go to /update-profile");
+  } catch (err) {
+    console.log(err.response?.data || err.message);
+    res.status(500).send("OAuth login failed ❌");
+  }
+});
 
-    // =====================
-    // UPDATE PROFILE
-    // =====================
-    await axios.post(
-      "https://api.x.com/1.1/account/update_profile.json",
-      new URLSearchParams({
+// =====================
+// OAUTH1 PROFILE UPDATE
+// =====================
+app.get("/update-profile", async (req, res) => {
+  try {
+    const request = {
+      url: "https://api.x.com/1.1/account/update_profile.json",
+      method: "POST",
+      data: {
         description:
-          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫🌀 I’ve given myself up completely ‼️ click and join 💗✨😵‍💫",
+          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫🌀",
         url: "https://throne.com/melanierosalee"
-      }),
+      }
+    };
+
+    const authHeader = oauth.toHeader(
+      oauth.authorize(request, token)
+    );
+
+    await axios.post(
+      request.url,
+      new URLSearchParams(request.data),
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          ...authHeader,
           "Content-Type": "application/x-www-form-urlencoded"
         }
       }
@@ -106,14 +147,12 @@ app.get("/callback", async (req, res) => {
 
     res.send("Profile updated successfully ✅");
   } catch (err) {
-    console.log("ERROR:", err.response?.data || err.message);
-    res.status(500).send("OAuth failed ❌ Check logs");
+    console.log(err.response?.data || err.message);
+    res.status(500).send("Profile update failed ❌");
   }
 });
 
 // =====================
-// START SERVER
-// =====================
 app.listen(process.env.PORT || 3000, () => {
-  console.log("Server running");
+  console.log("Bot running");
 });
