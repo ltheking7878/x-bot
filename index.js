@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 });
 
 // =========================
-// LOGIN (FIXED)
+// LOGIN
 // =========================
 app.get("/login", (req, res) => {
   codeVerifier = base64URLEncode(crypto.randomBytes(32));
@@ -56,7 +56,6 @@ app.get("/callback", async (req, res) => {
   const code = req.query.code;
 
   try {
-    // exchange code for token
     const tokenRes = await axios.post(
       "https://api.x.com/2/oauth2/token",
       new URLSearchParams({
@@ -75,9 +74,6 @@ app.get("/callback", async (req, res) => {
 
     const accessToken = tokenRes.data.access_token;
 
-    // =========================
-    // UPDATE PROFILE
-    // =========================
     await axios.post(
       "https://api.x.com/1.1/account/update_profile.json",
       new URLSearchParams({
@@ -104,5 +100,5 @@ app.get("/callback", async (req, res) => {
 // START SERVER
 // =========================
 app.listen(process.env.PORT || 3000, () => {
-  console.log("Server running on port 3000");
+  console.log("Server running");
 });
