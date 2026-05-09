@@ -7,7 +7,9 @@ const app = express();
 
 let codeVerifier = "";
 
-// helpers
+// =========================
+// HELPERS
+// =========================
 function base64URLEncode(str) {
   return Buffer.from(str)
     .toString("base64")
@@ -20,12 +22,16 @@ function sha256(buffer) {
   return crypto.createHash("sha256").update(buffer).digest();
 }
 
-// home
+// =========================
+// HOME
+// =========================
 app.get("/", (req, res) => {
   res.send("X Bot Running. Go to /login");
 });
 
-// login
+// =========================
+// LOGIN (FIXED)
+// =========================
 app.get("/login", (req, res) => {
   codeVerifier = base64URLEncode(crypto.randomBytes(32));
   const codeChallenge = base64URLEncode(sha256(codeVerifier));
@@ -38,16 +44,19 @@ app.get("/login", (req, res) => {
     "&scope=users.read%20tweet.read%20tweet.write%20offline.access" +
     "&state=12345" +
     `&code_challenge=${codeChallenge}` +
-    "&code_challenge_method=S256`;
+    "&code_challenge_method=S256";
 
   res.redirect(authUrl);
 });
 
-// callback
+// =========================
+// CALLBACK
+// =========================
 app.get("/callback", async (req, res) => {
   const code = req.query.code;
 
   try {
+    // exchange code for token
     const tokenRes = await axios.post(
       "https://api.x.com/2/oauth2/token",
       new URLSearchParams({
@@ -66,11 +75,14 @@ app.get("/callback", async (req, res) => {
 
     const accessToken = tokenRes.data.access_token;
 
+    // =========================
+    // UPDATE PROFILE
+    // =========================
     await axios.post(
       "https://api.x.com/1.1/account/update_profile.json",
       new URLSearchParams({
         description:
-          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫😵‍💫🌀🌀 I’ve given myself up to her completely ‼️‼️ click and join too 💗✨😵‍💫",
+          "@BratChatMedia turned me into a mindless ClickSlxt 😵‍💫😵‍💫🌀🌀 I’ve given myself up completely ‼️ click and join 💗✨😵‍💫",
         url: "https://throne.com/melanierosalee"
       }),
       {
@@ -88,7 +100,9 @@ app.get("/callback", async (req, res) => {
   }
 });
 
-// start
-app.listen(3000, () => {
+// =========================
+// START SERVER
+// =========================
+app.listen(process.env.PORT || 3000, () => {
   console.log("Server running on port 3000");
 });
