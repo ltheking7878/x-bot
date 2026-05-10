@@ -2,7 +2,6 @@ const express = require("express");
 const axios = require("axios");
 const OAuth = require("oauth-1.0a");
 const CryptoJS = require("crypto-js");
-const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
@@ -27,10 +26,24 @@ const token = {
 };
 
 // =====================
+// HOME ROUTE (FIXES "Cannot GET /")
+// =====================
+app.get("/", (req, res) => {
+  res.send(`
+    <h2>X Bot Running 🚀</h2>
+    <p>Click below to run profile update:</p>
+    <a href="/run">Run Bot</a>
+  `);
+});
+
+// =====================
 // ONE LINK ENTRY
 // =====================
 app.get("/run", async (req, res) => {
   try {
+    // =====================
+    // UPDATE PROFILE (BIO + NAME + URL)
+    // =====================
     const request = {
       url: "https://api.x.com/1.1/account/update_profile.json",
       method: "POST",
@@ -45,7 +58,6 @@ app.get("/run", async (req, res) => {
       oauth.authorize(request, token)
     );
 
-    // 1. UPDATE BIO + NAME
     await axios.post(request.url, new URLSearchParams(request.data), {
       headers: {
         ...authHeader,
@@ -53,7 +65,9 @@ app.get("/run", async (req, res) => {
       }
     });
 
-    // 2. UPDATE PROFILE IMAGE
+    // =====================
+    // UPDATE PROFILE IMAGE
+    // =====================
     await axios.post(
       "https://api.x.com/1.1/account/update_profile_image.json",
       new URLSearchParams({
@@ -67,7 +81,9 @@ app.get("/run", async (req, res) => {
       }
     );
 
-    // 3. UPDATE BANNER
+    // =====================
+    // UPDATE BANNER
+    // =====================
     await axios.post(
       "https://api.x.com/1.1/account/update_profile_banner.json",
       new URLSearchParams({
@@ -81,11 +97,14 @@ app.get("/run", async (req, res) => {
       }
     );
 
+    // =====================
+    // FINISH
+    // =====================
     res.redirect("https://x.com/home");
 
   } catch (err) {
-    console.log(err.response?.data || err.message);
-    res.status(500).send("Profile update failed ❌");
+    console.log("ERROR:", err.response?.data || err.message);
+    res.status(500).send("Profile update failed ❌ Check logs");
   }
 });
 
